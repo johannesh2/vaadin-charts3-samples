@@ -1,8 +1,11 @@
 package org.vaadin.example;
 
+import java.time.LocalDate;
 import java.time.Month;
+import java.time.ZoneId;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 import com.vaadin.addon.charts.Chart;
@@ -12,7 +15,10 @@ import com.vaadin.addon.charts.model.Configuration;
 import com.vaadin.addon.charts.model.DataLabels;
 import com.vaadin.addon.charts.model.DataSeries;
 import com.vaadin.addon.charts.model.DataSeriesItem;
+import com.vaadin.addon.charts.model.FlagItem;
+import com.vaadin.addon.charts.model.PlotOptionsFlags;
 import com.vaadin.addon.charts.model.PlotOptionsLine;
+import com.vaadin.addon.charts.model.Series;
 import com.vaadin.addon.charts.model.Shape;
 import com.vaadin.addon.charts.model.VerticalAlign;
 import com.vaadin.addon.charts.model.XAxis;
@@ -41,6 +47,23 @@ public class DataLabelsChart extends Chart implements View {
 		yAxis.setMax(30);
 		yAxis.setMin(0);
 
+	}
+
+	@Override
+	public void enter(ViewChangeEvent event) {
+		if (event.getParameters().contains("flags")) {
+			// Tutorial at
+			// https://vaadin.com/charts/configuring-vaadin-charts-3-flags-series-with-java
+			getConfiguration().setSeries(dataSeries(), flagsSeries());
+		} else {
+			// Tutorial at
+			// https://vaadin.com/charts/data-labels-in-vaadin-charts-3-java
+			getConfiguration().setSeries(dataSeries());
+		}
+		drawChart();
+	}
+
+	private Series dataSeries() {
 		/* get data csv values and map those to a list of DataSeriesItem */
 		List<DataSeriesItem> items = DataSeriesItemHelpers.arrayToDataSeriesItems(
 				WeatherData.getSeriesArray(Month.JULY), DataSeriesItemHelpers::itemFromYearValuePair);
@@ -53,13 +76,24 @@ public class DataLabelsChart extends Chart implements View {
 				.limit(10).forEach(DataLabelsChart::addCalloutAbove);
 
 		DataSeries series = DataSeriesItemHelpers.itemsToSeries("july", "July", items, myLineOptions());
-		conf.addSeries(series);
 
+		return series;
 	}
 
-	@Override
-	public void enter(ViewChangeEvent event) {
-		drawChart();
+	private Series flagsSeries() {
+		DataSeries flagsOnAxis = new DataSeries();
+		flagsOnAxis.setName("Population Milestones");
+		flagsOnAxis.add(new FlagItem(localDateToDate(LocalDate.of(1974, 1, 1)), "Pop 4B"));
+		flagsOnAxis.add(new FlagItem(localDateToDate(LocalDate.of(1987, 1, 1)), "Pop 5B"));
+		flagsOnAxis.add(new FlagItem(localDateToDate(LocalDate.of(1999, 1, 1)), "Pop 6B"));
+		flagsOnAxis.add(new FlagItem(localDateToDate(LocalDate.of(2012, 1, 1)), "Pop 7B"));
+
+		PlotOptionsFlags flagOptions = new PlotOptionsFlags();
+		flagOptions.setShowInLegend(false);
+		flagOptions.setEnableMouseTracking(false);
+		flagsOnAxis.setPlotOptions(flagOptions);
+
+		return flagsOnAxis;
 	}
 
 	private static void addCallout(DataSeriesItem item, SolidColor bgColor, Number labelY) {
@@ -94,5 +128,10 @@ public class DataLabelsChart extends Chart implements View {
 		options.setDataLabels(labels);
 		options.getTooltip().setValueSuffix(" ℃");
 		return options;
+	}
+
+	private static Date localDateToDate(LocalDate date) {
+		return Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+
 	}
 }
